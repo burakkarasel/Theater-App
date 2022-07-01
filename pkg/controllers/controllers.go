@@ -95,10 +95,6 @@ func RemoveMovieById(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func CreateTicket(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func NewDirector(w http.ResponseWriter, r *http.Request) {
 	Director := &models.Director{}
 	utils.ParseBody(r, Director)
@@ -178,6 +174,94 @@ func DeleteDirectorById(w http.ResponseWriter, r *http.Request) {
 
 	director := models.DeleteDirectorById(ID)
 	res, _ := json.Marshal(director)
+	w.Header().Set("Content-Type", "pkglication/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func CreateTicket(w http.ResponseWriter, r *http.Request) {
+	NewTicket := &models.Ticket{}
+	utils.ParseBody(r, NewTicket)
+	NewTicket.Total = NewTicket.Adult*10 + NewTicket.Adult*20
+	t := NewTicket.NewTicket()
+
+	res, _ := json.Marshal(t)
+	w.Header().Set("Content-Type", "pkglication/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(res)
+}
+
+func GetTicketHistory(w http.ResponseWriter, r *http.Request) {
+	Tickets := models.GetTicketHistory()
+	res, _ := json.Marshal(Tickets)
+
+	w.Header().Set("Content-Type", "pkglication/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func GetTicketById(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ticketId := vars["ticketId"]
+	ID, err := strconv.ParseInt(ticketId, 0, 0)
+
+	if err != nil {
+		fmt.Println("error while parsing ID: ", err)
+	}
+
+	ticketInfo, _ := models.GetTicketById(ID)
+
+	res, _ := json.Marshal(ticketInfo)
+	w.Header().Set("Content-Type", "pkglication/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func UpdateTicketById(w http.ResponseWriter, r *http.Request) {
+	var updatedTicket = &models.Ticket{}
+	utils.ParseBody(r, updatedTicket)
+
+	vars := mux.Vars(r)
+	ticketId := vars["ticketId"]
+	ID, err := strconv.ParseInt(ticketId, 0, 0)
+
+	if err != nil {
+		fmt.Println("error while parsing ID: ", err)
+	}
+
+	ticketInfo, db := models.GetTicketById(ID)
+
+	if updatedTicket.MovieId > 0 {
+		ticketInfo.MovieId = updatedTicket.MovieId
+	}
+	if updatedTicket.Child >= 0 {
+		ticketInfo.Child = updatedTicket.Child
+	}
+	if updatedTicket.Adult >= 0 {
+		ticketInfo.Adult = updatedTicket.Adult
+	}
+	ticketInfo.Total = ticketInfo.Adult*20 + ticketInfo.Child*10
+
+	db.Save(&ticketInfo)
+
+	res, _ := json.Marshal(ticketInfo)
+	w.Header().Set("Content-Type", "pkglication/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(res)
+}
+
+func DeleteTicketById(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ticketId := vars["ticketId"]
+	ID, err := strconv.ParseInt(ticketId, 0, 0)
+
+	if err != nil {
+		fmt.Println("error while parsing ID: ", err)
+	}
+
+	ticket := models.DeleteTicketById(ID)
+
+	res, _ := json.Marshal(ticket)
 	w.Header().Set("Content-Type", "pkglication/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)

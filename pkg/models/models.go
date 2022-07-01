@@ -59,12 +59,6 @@ func DeleteMovieById(ID int64) Movie {
 	return movie
 }
 
-func (t *Ticket) NewTicket() *Ticket {
-	db.NewRecord(t)
-	db.Create(&t)
-	return t
-}
-
 func (d *Director) NewDirector() *Director {
 	db.NewRecord(d)
 	db.Create(&d)
@@ -87,4 +81,28 @@ func DeleteDirectorById(ID int64) Director {
 	var director Director
 	db.Where("director_id=?", ID).Delete(director)
 	return director
+}
+
+func (t *Ticket) NewTicket() *Ticket {
+	db.NewRecord(t)
+	db.Create(&t)
+	return t
+}
+
+func GetTicketHistory() []Ticket {
+	var tickets []Ticket
+	db.Find(&tickets)
+	return tickets
+}
+
+func GetTicketById(ID int64) (*Ticket, *gorm.DB) {
+	var ticket Ticket
+	db.Where("ticket_id=?", ID).Find(&ticket)
+	return &ticket, db
+}
+
+func DeleteTicketById(ID int64) Ticket {
+	var ticket Ticket
+	db.Where("ticket_id=?", ID).Delete(ticket)
+	return ticket
 }
