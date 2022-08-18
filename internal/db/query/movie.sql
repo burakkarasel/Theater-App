@@ -12,8 +12,8 @@ ORDER BY id
 LIMIT 1;
 
 -- name: CreateMovie :one
-INSERT INTO movies(title, director_id, rating, poster)
-VALUES($1, $2, $3, $4)
+INSERT INTO movies(title, director_id, rating, poster, summary)
+VALUES($1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: DeleteMovie :exec

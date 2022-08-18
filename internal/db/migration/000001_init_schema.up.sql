@@ -2,8 +2,9 @@ CREATE TABLE "movies" (
   "id" bigserial PRIMARY KEY,
   "title" varchar NOT NULL,
   "director_id" bigint NOT NULL,
-  "rating" numeric NOT NULL,
+  "rating" smallint NOT NULL,
   "poster" varchar NOT NULL,
+  "summary" varchar NOT NULL,
   "created_at" timestamptz NOT NULL DEFAULT (now())
 );
 
@@ -38,6 +39,8 @@ CREATE INDEX ON "movies" ("id");
 CREATE INDEX ON "directors" ("id");
 
 CREATE INDEX ON "tickets" ("id");
+
+CREATE INDEX ON "tickets" ("ticket_owner");
 
 CREATE INDEX ON "users" ("username");
 

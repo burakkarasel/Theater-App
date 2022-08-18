@@ -12,9 +12,10 @@ LIMIT 1;
 -- name: ListTickets :many
 SELECT *
 FROM tickets
+WHERE ticket_owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2;
+LIMIT $2
+OFFSET $3;
 
 -- name: DeleteTickets :exec
 DELETE FROM tickets
