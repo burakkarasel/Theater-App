@@ -20,8 +20,9 @@ type Movie struct {
 	ID         int64     `json:"id"`
 	Title      string    `json:"title"`
 	DirectorID int64     `json:"director_id"`
-	Rating     string    `json:"rating"`
+	Rating     int16     `json:"rating"`
 	Poster     string    `json:"poster"`
+	Summary    string    `json:"summary"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 

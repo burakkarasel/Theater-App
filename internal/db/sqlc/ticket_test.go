@@ -62,18 +62,20 @@ func TestGetTicket(t *testing.T) {
 
 // TestListTickets tests ListTickets DB Operation
 func TestListTickets(t *testing.T) {
+	var ticket Ticket
 	for i := 0; i < 10; i++ {
-		createRandomTicket(t)
+		ticket = createRandomTicket(t)
 	}
 
 	arg := ListTicketsParams{
-		Offset: 5,
-		Limit:  5,
+		TicketOwner: ticket.TicketOwner,
+		Offset:      0,
+		Limit:       1,
 	}
 
 	tickets, err := testQueries.ListTickets(context.Background(), arg)
 	require.NoError(t, err)
-	require.Len(t, tickets, 5)
+	require.Len(t, tickets, 1)
 
 	for _, v := range tickets {
 		require.NotEmpty(t, v)

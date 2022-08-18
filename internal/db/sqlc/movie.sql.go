@@ -10,16 +10,17 @@ import (
 )
 
 const createMovie = `-- name: CreateMovie :one
-INSERT INTO movies(title, director_id, rating, poster)
-VALUES($1, $2, $3, $4)
-RETURNING id, title, director_id, rating, poster, created_at
+INSERT INTO movies(title, director_id, rating, poster, summary)
+VALUES($1, $2, $3, $4, $5)
+RETURNING id, title, director_id, rating, poster, summary, created_at
 `
 
 type CreateMovieParams struct {
 	Title      string `json:"title"`
 	DirectorID int64  `json:"director_id"`
-	Rating     string `json:"rating"`
+	Rating     int16  `json:"rating"`
 	Poster     string `json:"poster"`
+	Summary    string `json:"summary"`
 }
 
 func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (Movie, error) {
@@ -28,6 +29,7 @@ func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (Movie
 		arg.DirectorID,
 		arg.Rating,
 		arg.Poster,
+		arg.Summary,
 	)
 	var i Movie
 	err := row.Scan(
@@ -36,6 +38,7 @@ func (q *Queries) CreateMovie(ctx context.Context, arg CreateMovieParams) (Movie
 		&i.DirectorID,
 		&i.Rating,
 		&i.Poster,
+		&i.Summary,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -52,7 +55,7 @@ func (q *Queries) DeleteMovie(ctx context.Context, id int64) error {
 }
 
 const getMovie = `-- name: GetMovie :one
-SELECT id, title, director_id, rating, poster, created_at
+SELECT id, title, director_id, rating, poster, summary, created_at
 FROM movies
 WHERE id = $1
 ORDER BY id
@@ -68,13 +71,14 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
 		&i.DirectorID,
 		&i.Rating,
 		&i.Poster,
+		&i.Summary,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listMovies = `-- name: ListMovies :many
-SELECT id, title, director_id, rating, poster, created_at
+SELECT id, title, director_id, rating, poster, summary, created_at
 FROM movies
 ORDER BY id
 LIMIT 8
@@ -95,6 +99,7 @@ func (q *Queries) ListMovies(ctx context.Context) ([]Movie, error) {
 			&i.DirectorID,
 			&i.Rating,
 			&i.Poster,
+			&i.Summary,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

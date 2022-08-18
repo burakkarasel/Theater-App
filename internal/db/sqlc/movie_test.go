@@ -3,7 +3,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -17,8 +16,9 @@ func createRandomMovie(t *testing.T) Movie {
 	arg := CreateMovieParams{
 		Title:      util.RandomName(),
 		DirectorID: director.ID,
-		Rating:     fmt.Sprintf("%d", util.RandomInt(6, 10)),
+		Rating:     int16(util.RandomInt(6, 10)),
 		Poster:     util.RandomString(10),
+		Summary:    util.RandomString(10),
 	}
 
 	m, err := testQueries.CreateMovie(context.Background(), arg)

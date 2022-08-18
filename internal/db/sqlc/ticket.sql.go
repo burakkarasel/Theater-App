@@ -79,18 +79,20 @@ func (q *Queries) GetTicket(ctx context.Context, id int64) (Ticket, error) {
 const listTickets = `-- name: ListTickets :many
 SELECT id, movie_id, ticket_owner, child, adult, total, created_at
 FROM tickets
+WHERE ticket_owner = $1
 ORDER BY id
-LIMIT $1
-OFFSET $2
+LIMIT $2
+OFFSET $3
 `
 
 type ListTicketsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	TicketOwner string `json:"ticket_owner"`
+	Limit       int32  `json:"limit"`
+	Offset      int32  `json:"offset"`
 }
 
 func (q *Queries) ListTickets(ctx context.Context, arg ListTicketsParams) ([]Ticket, error) {
-	rows, err := q.db.QueryContext(ctx, listTickets, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listTickets, arg.TicketOwner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
