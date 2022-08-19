@@ -2,4 +2,6 @@ sqlc:
 	sqlc generate
 test:
 	go test -v -cover ./...
-PHONY: sqlc test
+server:
+	go run cmd/web/main.go
+PHONY: sqlc test down server
