@@ -59,13 +59,14 @@ func TestGetMovie(t *testing.T) {
 
 // TestListMovies tests ListMovies DB operation
 func TestListMovies(t *testing.T) {
-	for i := 0; i < 8; i++ {
+	length := 8
+	for i := 0; i < length; i++ {
 		createRandomMovie(t)
 	}
 
-	movies, err := testQueries.ListMovies(context.Background())
+	movies, err := testQueries.ListMovies(context.Background(), int32(length))
 	require.NoError(t, err)
-	require.Len(t, movies, 8)
+	require.Len(t, movies, length)
 
 	for _, v := range movies {
 		require.NotEmpty(t, v)

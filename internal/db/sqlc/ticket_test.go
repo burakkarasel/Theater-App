@@ -85,7 +85,7 @@ func TestListTickets(t *testing.T) {
 // TestDeleteTicket tests DeleteTicket DB operation
 func TestDeleteTicket(t *testing.T) {
 	t1 := createRandomTicket(t)
-	err := testQueries.DeleteTickets(context.Background(), t1.ID)
+	err := testQueries.DeleteTicket(context.Background(), t1.ID)
 	require.NoError(t, err)
 
 	t2, err := testQueries.GetTicket(context.Background(), t1.ID)

@@ -44,13 +44,13 @@ func (q *Queries) CreateTicket(ctx context.Context, arg CreateTicketParams) (Tic
 	return i, err
 }
 
-const deleteTickets = `-- name: DeleteTickets :exec
+const deleteTicket = `-- name: DeleteTicket :exec
 DELETE FROM tickets
 WHERE id = $1
 `
 
-func (q *Queries) DeleteTickets(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteTickets, id)
+func (q *Queries) DeleteTicket(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteTicket, id)
 	return err
 }
 

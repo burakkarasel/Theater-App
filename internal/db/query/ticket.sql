@@ -17,6 +17,6 @@ ORDER BY id
 LIMIT $2
 OFFSET $3;
 
--- name: DeleteTickets :exec
+-- name: DeleteTicket :exec
 DELETE FROM tickets
 WHERE id = $1;

@@ -80,12 +80,12 @@ func (q *Queries) GetMovie(ctx context.Context, id int64) (Movie, error) {
 const listMovies = `-- name: ListMovies :many
 SELECT id, title, director_id, rating, poster, summary, created_at
 FROM movies
-ORDER BY id
-LIMIT 8
+ORDER BY id DESC
+LIMIT $1
 `
 
-func (q *Queries) ListMovies(ctx context.Context) ([]Movie, error) {
-	rows, err := q.db.QueryContext(ctx, listMovies)
+func (q *Queries) ListMovies(ctx context.Context, limit int32) ([]Movie, error) {
+	rows, err := q.db.QueryContext(ctx, listMovies, limit)
 	if err != nil {
 		return nil, err
 	}

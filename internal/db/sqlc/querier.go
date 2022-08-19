@@ -14,13 +14,13 @@ type Querier interface {
 	CreateTicket(ctx context.Context, arg CreateTicketParams) (Ticket, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteMovie(ctx context.Context, id int64) error
-	DeleteTickets(ctx context.Context, id int64) error
+	DeleteTicket(ctx context.Context, id int64) error
 	GetDirector(ctx context.Context, id int64) (Director, error)
 	GetMovie(ctx context.Context, id int64) (Movie, error)
 	GetTicket(ctx context.Context, id int64) (Ticket, error)
 	GetUser(ctx context.Context, username string) (User, error)
 	ListDirectors(ctx context.Context, arg ListDirectorsParams) ([]Director, error)
-	ListMovies(ctx context.Context) ([]Movie, error)
+	ListMovies(ctx context.Context, limit int32) ([]Movie, error)
 	ListTickets(ctx context.Context, arg ListTicketsParams) ([]Ticket, error)
 }
 

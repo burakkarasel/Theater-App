@@ -1,8 +1,8 @@
 -- name: ListMovies :many
 SELECT *
 FROM movies
-ORDER BY id
-LIMIT 8;
+ORDER BY id DESC
+LIMIT $1;
 
 -- name: GetMovie :one
 SELECT *
