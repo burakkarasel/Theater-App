@@ -10,10 +10,10 @@ import (
 
 // CreateMovieRequest holds request json data
 type CreateMovieRequest struct {
-	Title      string `json:"title" binding:"required"`
+	Title      string `json:"title" binding:"required,min=3"`
 	Poster     string `json:"poster" binding:"required,min=10"`
 	Summary    string `json:"summary" binding:"required,min=10"`
-	Rating     int16  `json:"rating" binding:"required,min=5"`
+	Rating     int16  `json:"rating" binding:"required,min=1"`
 	DirectorID int64  `json:"director_id" binding:"required,min=1"`
 }
 
