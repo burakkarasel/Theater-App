@@ -122,11 +122,12 @@ func (server *Server) getTicket(ctx *gin.Context) {
 
 // ListTicketRequest holds the query data of the request
 type ListTicketsRequest struct {
-	TicketOwner string `form:"ticket_owner" bindings:"required,min=6"`
-	PageID      int32  `form:"page_id" bindings:"required,min=1"`
-	PageSize    int32  `form:"page_size" bindings:"required,min=5,max=10"`
+	TicketOwner string `form:"ticket_owner" binding:"required,min=6"`
+	PageID      int32  `form:"page_id" binding:"required,min=1"`
+	PageSize    int32  `form:"page_size" binding:"required,min=5,max=10"`
 }
 
+// listTickets returns the tickets for given query values
 func (server *Server) listTickets(ctx *gin.Context) {
 	// first i check for the bindings
 	var req ListTicketsRequest

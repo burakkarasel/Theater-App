@@ -14,16 +14,17 @@ import (
 
 // CreateUserRequest holds the json data of the request
 type CreateUserRequest struct {
-	Username string `json:"username" binding:"required,min=6"`
+	Username string `json:"username" binding:"required,min=6,alphanum"`
 	Password string `json:"password" binding:"required,min=8"`
-	Email    string `json:"email" binding:"required,min=6"`
+	Email    string `json:"email" binding:"required,email"`
 }
 
 // UserResponse holds json the json data of the response
 type UserResponse struct {
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	AccessLevel int16     `json:"access_level"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // createUser creates a new user in DB
@@ -48,6 +49,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Username:       req.Username,
 		Email:          req.Email,
 		HashedPassword: hashedPassword,
+		AccessLevel:    1,
 	}
 
 	u, err := server.store.CreateUser(ctx, arg)
@@ -55,8 +57,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 	// if any error occurs i return 500 and the error
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
-			switch pqErr.Code.Name() {
-			case "unique_violation":
+			if pqErr.Code.Name() == "unique_violation" {
 				ctx.JSON(http.StatusForbidden, errorResponse(err))
 				return
 			}
@@ -120,8 +121,9 @@ func (server *Server) loginUser(ctx *gin.Context) {
 // createUserResponse creates a user response without sensitive information
 func createUserResponse(user db.User) UserResponse {
 	return UserResponse{
-		Username:  user.Username,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
+		Username:    user.Username,
+		Email:       user.Email,
+		AccessLevel: user.AccessLevel,
+		CreatedAt:   user.CreatedAt,
 	}
 }
