@@ -6,20 +6,22 @@ import (
 	"os"
 	"testing"
 
-	"github.com/burakkarasel/Theatre-API/internal/dsn"
+	"github.com/burakkarasel/Theatre-API/internal/util"
 	_ "github.com/lib/pq"
 )
-
-const dbDriver = "postgres"
 
 var testQueries *Queries
 var testDB *sql.DB
 
 // TestMain sets up the DB connection for testing
 func TestMain(m *testing.M) {
-	var err error
+	config, err := util.LoadConfig("../../..")
 
-	testDB, err = sql.Open(dbDriver, dsn.DSN)
+	if err != nil {
+		log.Fatal("cannot load env variables:", err)
+	}
+
+	testDB, err = sql.Open(config.DBDriver, config.DBSource)
 	if err != nil {
 		log.Fatal("cannot connect to db:", err)
 	}
