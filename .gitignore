@@ -9,6 +9,8 @@
 dsn
 dsn.go
 down.sh
+start.sh
+test.sh
 
 # Test binary, built with `go test -c`
 *.test

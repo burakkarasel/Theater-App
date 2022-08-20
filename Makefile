@@ -1,7 +1,10 @@
 sqlc:
 	sqlc generate
 test:
-	go test -v -cover ./...
+	./test.sh
 server:
-	go run cmd/web/main.go
-PHONY: sqlc test down server
+	./start.sh
+mock:
+	mockgen -package mockdb -destination internal/db/mock/store.go github.com/burakkarasel/Theatre-API/internal/db/sqlc Store
+	
+PHONY: sqlc test down server mock

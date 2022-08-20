@@ -6,22 +6,23 @@ import (
 
 	"github.com/burakkarasel/Theatre-API/internal/api"
 	db "github.com/burakkarasel/Theatre-API/internal/db/sqlc"
-	"github.com/burakkarasel/Theatre-API/internal/dsn"
+	"github.com/burakkarasel/Theatre-API/internal/util"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 )
 
-const (
-	dbDriver = "postgres"
-	dbSource = dsn.DSN
-	port     = "localhost:8080"
-)
-
 func main() {
-	// first i connect to DB
-	conn, err := sql.Open(dbDriver, dbSource)
+	// first i load the env variables
+	config, err := util.LoadConfig(".")
+
+	if err != nil {
+		log.Fatal("cannot load env variables:", err)
+	}
+
+	// then i connect to DB
+	conn, err := sql.Open(config.DBDriver, config.DBSource)
 
 	if err != nil {
 		log.Fatal("cannot connect to DB:", err)
@@ -30,7 +31,7 @@ func main() {
 	log.Println("connected to DB")
 
 	// then i run my migrations
-	runDBMigration("file://internal/db/migration", dsn.DSN)
+	runDBMigration("file://internal/db/migration", config.DBSource)
 
 	// then i create a new store to create a new server
 	store := db.NewStore(conn)
@@ -42,7 +43,7 @@ func main() {
 
 	log.Println("created a new server instance")
 
-	err = server.Start(port)
+	err = server.Start(config.ServerAddress)
 
 	if err != nil {
 		log.Fatal("cannot start server:", err)
