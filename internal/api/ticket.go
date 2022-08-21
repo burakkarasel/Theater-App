@@ -2,19 +2,22 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	db "github.com/burakkarasel/Theatre-API/internal/db/sqlc"
+	"github.com/burakkarasel/Theatre-API/internal/token"
 	"github.com/gin-gonic/gin"
 )
 
+var ErrUnauthorizedAction = errors.New("authenticated user and ticket owner doesn't match")
+
 // CreateTicketRequest holds the json data of the createTicket
 type CreateTicketRequest struct {
-	TicketOwner string `json:"ticket_owner" binding:"required,min=6"`
-	MovieID     int64  `json:"movie_id" binding:"required,min=1"`
-	Total       int64  `json:"total" binding:"required,gt=0"`
-	Child       int16  `json:"child" binding:"min=0"`
-	Adult       int16  `json:"adult" binding:"min=0"`
+	MovieID int64 `json:"movie_id" binding:"required,min=1"`
+	Total   int64 `json:"total" binding:"required,gt=0"`
+	Child   int16 `json:"child" binding:"min=0"`
+	Adult   int16 `json:"adult" binding:"min=0"`
 }
 
 // CreateTicketResponse holds the data for createTicket response
@@ -37,10 +40,13 @@ func (server *Server) createTicket(ctx *gin.Context) {
 		return
 	}
 
+	// here i take the payload from the context
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	// then i create args for the DB operation
 	arg := db.CreateTicketParams{
 		MovieID:     req.MovieID,
-		TicketOwner: req.TicketOwner,
+		TicketOwner: authPayload.Username,
 		Total:       req.Total,
 		Child:       req.Child,
 		Adult:       req.Adult,
@@ -107,6 +113,15 @@ func (server *Server) getTicket(ctx *gin.Context) {
 		return
 	}
 
+	// here i take the payload from the context
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// if ticket owner and authenticated user doesnt match i return 401 and the error
+	if authPayload.Username != t.TicketOwner {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrUnauthorizedAction))
+		return
+	}
+
 	// then i get the movie from db
 	m, err := server.store.GetMovie(ctx, t.MovieID)
 
@@ -122,9 +137,8 @@ func (server *Server) getTicket(ctx *gin.Context) {
 
 // ListTicketRequest holds the query data of the request
 type ListTicketsRequest struct {
-	TicketOwner string `form:"ticket_owner" binding:"required,min=6"`
-	PageID      int32  `form:"page_id" binding:"required,min=1"`
-	PageSize    int32  `form:"page_size" binding:"required,min=5,max=10"`
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=5,max=10"`
 }
 
 // listTickets returns the tickets for given query values
@@ -136,9 +150,12 @@ func (server *Server) listTickets(ctx *gin.Context) {
 		return
 	}
 
+	// here i take the payload from the context
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	// then i create args to call DB func
 	arg := db.ListTicketsParams{
-		TicketOwner: req.TicketOwner,
+		TicketOwner: authPayload.Username,
 		Limit:       req.PageSize,
 		Offset:      (req.PageID - 1) * req.PageSize,
 	}
@@ -158,7 +175,7 @@ func (server *Server) listTickets(ctx *gin.Context) {
 	}
 
 	// then i get each ticket's movie for the response
-	var result []GetTicketResponse
+	var result = []GetTicketResponse{}
 	for _, t := range tickets {
 		m, err := server.store.GetMovie(ctx, t.MovieID)
 
@@ -193,8 +210,31 @@ func (server *Server) deleteTicket(ctx *gin.Context) {
 		return
 	}
 
+	// then i get the ticket from db
+	t, err := server.store.GetTicket(ctx, req.ID)
+
+	if err != nil {
+		// if err is no rows i return 404 and the error
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		// otherwise i return 500 and the error
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// here i take the payload from the context
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// if ticket owner and authenticated user doesnt match i return 401 and the error
+	if t.TicketOwner != authPayload.Username {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(ErrUnauthorizedAction))
+		return
+	}
+
 	// then i delete the ticket
-	err := server.store.DeleteTicket(ctx, req.ID)
+	err = server.store.DeleteTicket(ctx, req.ID)
 
 	// if any error occurs i check the error message
 	if err != nil {

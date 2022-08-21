@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	mockdb "github.com/burakkarasel/Theatre-API/internal/db/mock"
 	db "github.com/burakkarasel/Theatre-API/internal/db/sqlc"
+	"github.com/burakkarasel/Theatre-API/internal/token"
 	"github.com/burakkarasel/Theatre-API/internal/util"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
@@ -21,20 +23,21 @@ import (
 // TestCreateTicketAPI tests createTicket handler
 func TestCreateTicketAPI(t *testing.T) {
 	ticket, movie := randomTicket(t)
+
 	testCases := []struct {
 		name          string
 		body          gin.H
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
 		{
 			name: "OK",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.CreateTicketParams{
@@ -47,36 +50,62 @@ func TestCreateTicketAPI(t *testing.T) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(ticket.MovieID)).Times(1).Return(movie, nil)
 				store.EXPECT().CreateTicket(gomock.Any(), gomock.Eq(arg)).Times(1).Return(ticket, nil)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, w.Code)
 				requireTicketBodyMatch(t, w.Body, CreateTicketResponse{Movie: movie, Ticket: ticket})
 			},
 		},
 		{
-			name: "Invalid ticket owner",
-			body: gin.H{
-				"ticket_owner": "aa!@",
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
-				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
-			},
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
 			name: "Invalid child",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        -3,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    -3,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
+			},
+		},
+		{
+			name: "Invalid adult",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    -3,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusBadRequest, w.Code)
+			},
+		},
+		{
+			name: "Invalid adult",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    -3,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
@@ -87,47 +116,15 @@ func TestCreateTicketAPI(t *testing.T) {
 			},
 		},
 		{
-			name: "Invalid adult",
+			name: "Invalid movie ID",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        -3,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": -3,
 			},
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
-				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
-			},
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name: "Invalid adult",
-			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        -3,
-				"movie_id":     ticket.MovieID,
-			},
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
-				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
-			},
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name: "Invalid adult",
-			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     -3,
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
@@ -140,15 +137,17 @@ func TestCreateTicketAPI(t *testing.T) {
 		{
 			name: "no participant",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        0,
-				"adult":        0,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    0,
+				"adult":    0,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
@@ -157,15 +156,17 @@ func TestCreateTicketAPI(t *testing.T) {
 		{
 			name: "Movie Not Found",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(ticket.MovieID)).Times(1).Return(db.Movie{}, sql.ErrNoRows)
 				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, w.Code)
@@ -174,15 +175,17 @@ func TestCreateTicketAPI(t *testing.T) {
 		{
 			name: "Movie Internal Server Error",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(ticket.MovieID)).Times(1).Return(db.Movie{}, sql.ErrConnDone)
 				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
@@ -191,11 +194,13 @@ func TestCreateTicketAPI(t *testing.T) {
 		{
 			name: "Ticket Internal Server Error",
 			body: gin.H{
-				"ticket_owner": ticket.TicketOwner,
-				"child":        ticket.Child,
-				"adult":        ticket.Adult,
-				"total":        ticket.Total,
-				"movie_id":     ticket.MovieID,
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.CreateTicketParams{
@@ -210,6 +215,81 @@ func TestCreateTicketAPI(t *testing.T) {
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+		},
+		{
+			name: "No Authorization",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid Authorization Type",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "asd", ticket.TicketOwner, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Token Expired",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, -time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid authorization format",
+			body: gin.H{
+				"child":    ticket.Child,
+				"adult":    ticket.Adult,
+				"total":    ticket.Total,
+				"movie_id": ticket.MovieID,
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "", ticket.TicketOwner, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().CreateTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
 			},
 		},
 	}
@@ -233,6 +313,8 @@ func TestCreateTicketAPI(t *testing.T) {
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(data))
 			require.NoError(t, err)
 
+			tt.setupAuth(t, req, server.tokenMaker)
+
 			server.router.ServeHTTP(w, req)
 
 			tt.checkResponse(t, w)
@@ -246,6 +328,7 @@ func TestGetTicketAPI(t *testing.T) {
 	testCases := []struct {
 		name          string
 		ID            int64
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		buildStubs    func(store *mockdb.MockStore)
 		checkResponse func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
@@ -255,6 +338,9 @@ func TestGetTicketAPI(t *testing.T) {
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(movie.ID)).Times(1).Return(movie, nil)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, w.Code)
@@ -267,6 +353,9 @@ func TestGetTicketAPI(t *testing.T) {
 				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
@@ -277,6 +366,9 @@ func TestGetTicketAPI(t *testing.T) {
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(db.Ticket{}, sql.ErrNoRows)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, w.Code)
@@ -289,6 +381,9 @@ func TestGetTicketAPI(t *testing.T) {
 				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(db.Ticket{}, sql.ErrConnDone)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
 			},
@@ -300,8 +395,80 @@ func TestGetTicketAPI(t *testing.T) {
 				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(movie.ID)).Times(1).Return(db.Movie{}, sql.ErrConnDone)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+		},
+		{
+			name: "No Authentication",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Ticket belongs to other user",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, "asdasd", time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid Authorization Type",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "invalid", ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid Authorization Format",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "", ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Token Expired",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, -time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
 			},
 		},
 	}
@@ -321,6 +488,8 @@ func TestGetTicketAPI(t *testing.T) {
 
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
+
+			tt.setupAuth(t, req, server.tokenMaker)
 
 			server.router.ServeHTTP(w, req)
 
@@ -348,11 +517,15 @@ func TestListTicketsAPI(t *testing.T) {
 		name          string
 		query         string
 		buildStubs    func(store *mockdb.MockStore)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		checkResponse func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
 		{
 			name:  "OK",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=1&page_size=5", u.Username),
+			query: "?page_id=1&page_size=5",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
+			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListTicketsParams{
 					TicketOwner: u.Username,
@@ -369,11 +542,14 @@ func TestListTicketsAPI(t *testing.T) {
 			},
 		},
 		{
-			name:  "Invalid ticket owner",
-			query: "?ticket_owner=&page_id=1&page_size=5",
+			name:  "Invalid page ID",
+			query: "?page_id=&page_size=5",
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
@@ -381,21 +557,13 @@ func TestListTicketsAPI(t *testing.T) {
 		},
 		{
 			name:  "Invalid page size",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=&page_size=5", u.Username),
+			query: "?page_id=1&page_size=",
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 			},
-			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusBadRequest, w.Code)
-			},
-		},
-		{
-			name:  "Invalid page ID",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=1&page_size=", u.Username),
-			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
-				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
@@ -403,7 +571,7 @@ func TestListTicketsAPI(t *testing.T) {
 		},
 		{
 			name:  "Ticket not found",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=1&page_size=5", u.Username),
+			query: "?page_id=1&page_size=5",
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListTicketsParams{
 					TicketOwner: u.Username,
@@ -413,13 +581,16 @@ func TestListTicketsAPI(t *testing.T) {
 				store.EXPECT().ListTickets(gomock.Any(), gomock.Eq(arg)).Times(1).Return([]db.Ticket{}, sql.ErrNoRows)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
 		{
 			name:  "Ticket Internal Server Error",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=1&page_size=5", u.Username),
+			query: "?page_id=1&page_size=5",
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListTicketsParams{
 					TicketOwner: u.Username,
@@ -429,13 +600,16 @@ func TestListTicketsAPI(t *testing.T) {
 				store.EXPECT().ListTickets(gomock.Any(), gomock.Eq(arg)).Times(1).Return([]db.Ticket{}, sql.ErrConnDone)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
 			},
 		},
 		{
 			name:  "Movie Internal Server Error",
-			query: fmt.Sprintf("?ticket_owner=%s&page_id=1&page_size=5", u.Username),
+			query: "?page_id=1&page_size=5",
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.ListTicketsParams{
 					TicketOwner: u.Username,
@@ -445,8 +619,67 @@ func TestListTicketsAPI(t *testing.T) {
 				store.EXPECT().ListTickets(gomock.Any(), gomock.Eq(arg)).Times(1).Return(tickets, nil)
 				store.EXPECT().GetMovie(gomock.Any(), gomock.Eq(movie.ID)).Times(1).Return(movie, sql.ErrConnDone)
 			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, time.Minute)
+			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+		},
+		{
+			name:  "No Authentication",
+			query: "?page_id=1&page_size=5",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name:  "Invalid Authentication Type",
+			query: "?page_id=1&page_size=5",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "asdasd", u.Username, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name:  "Invalid Authentication Format",
+			query: "?page_id=1&page_size=5",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "", u.Username, time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name:  "Expired Token",
+			query: "?page_id=1&page_size=5",
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, u.Username, -time.Minute)
+			},
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().ListTickets(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().GetMovie(gomock.Any(), gomock.Any()).Times(0)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
 			},
 		},
 	}
@@ -467,6 +700,8 @@ func TestListTicketsAPI(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
+			tt.setupAuth(t, req, server.tokenMaker)
+
 			server.router.ServeHTTP(w, req)
 
 			tt.checkResponse(t, w)
@@ -481,13 +716,18 @@ func TestDeleteTicketAPI(t *testing.T) {
 		name          string
 		ID            int64
 		buildStubs    func(store *mockdb.MockStore)
+		setupAuth     func(t *testing.T, request *http.Request, tokenMaker token.Maker)
 		checkResponse func(t *testing.T, w *httptest.ResponseRecorder)
 	}{
 		{
 			name: "OK",
 			ID:   ticket.ID,
 			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
 				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(nil)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusOK, w.Code)
@@ -497,30 +737,140 @@ func TestDeleteTicketAPI(t *testing.T) {
 			name: "Invalid ID",
 			ID:   -5,
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any).Times(0)
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusBadRequest, w.Code)
 			},
 		},
 		{
-			name: "Ticket Not Found",
+			name: "Ticket Not Found Get",
 			ID:   ticket.ID,
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(sql.ErrNoRows)
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(db.Ticket{}, sql.ErrNoRows)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, w.Code)
 			},
 		},
 		{
-			name: "Ticket Internal Server Error",
+			name: "Ticket Not Found Delete",
 			ID:   ticket.ID,
 			buildStubs: func(store *mockdb.MockStore) {
-				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(sql.ErrConnDone)
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(sql.ErrNoRows)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusNotFound, w.Code)
+			},
+		},
+		{
+			name: "Ticket Internal Server Error Get",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(db.Ticket{}, sql.ErrConnDone)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+		},
+		{
+			name: "Ticket Internal Server Error Delete",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(sql.ErrConnDone)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusInternalServerError, w.Code)
+			},
+		},
+		{
+			name: "No Authentication",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid Authentication Type",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "asdasd", ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Invalid Authentication Format",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, "", ticket.TicketOwner, time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Ticket belongs to other user",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Eq(ticket.ID)).Times(1).Return(ticket, nil)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, "asdasd", time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
+			},
+		},
+		{
+			name: "Expired Token",
+			ID:   ticket.ID,
+			buildStubs: func(store *mockdb.MockStore) {
+				store.EXPECT().GetTicket(gomock.Any(), gomock.Any()).Times(0)
+				store.EXPECT().DeleteTicket(gomock.Any(), gomock.Any()).Times(0)
+			},
+			setupAuth: func(t *testing.T, request *http.Request, tokenMaker token.Maker) {
+				addAuthorization(t, request, tokenMaker, validAuthorizationTypeBearer, ticket.TicketOwner, -time.Minute)
+			},
+			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
+				require.Equal(t, http.StatusUnauthorized, w.Code)
 			},
 		},
 	}
@@ -540,6 +890,8 @@ func TestDeleteTicketAPI(t *testing.T) {
 
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
+
+			tt.setupAuth(t, req, server.tokenMaker)
 
 			server.router.ServeHTTP(w, req)
 

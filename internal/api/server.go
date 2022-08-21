@@ -57,15 +57,18 @@ func (server *Server) setRoutes() {
 	router.GET("/movies", server.listMovies)
 	router.GET("/movies/:id", server.getMovie)
 
-	// tickets
-	router.POST("/tickets", server.createTicket)
-	router.GET("/tickets/:id", server.getTicket)
-	router.GET("/tickets", server.listTickets)
-	router.DELETE("/tickets/:id", server.deleteTicket)
-
 	// users
 	router.POST("/users", server.createUser)
 	router.POST("/users/login", server.loginUser)
+
+	// middleware
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+
+	// tickets (protected)
+	authRoutes.POST("/tickets", server.createTicket)
+	authRoutes.GET("/tickets/:id", server.getTicket)
+	authRoutes.GET("/tickets", server.listTickets)
+	authRoutes.DELETE("/tickets/:id", server.deleteTicket)
 
 	server.router = router
 }
