@@ -62,7 +62,7 @@ CREATE DATABASE $name$;
 ```
 #!/bin/bash
 
-migrate -path internal/db/migration -database "postgresql://$username$:$password$@localhost:5432/Theater?sslmode=disable" -verbose down
+migrate -path internal/db/migration -database "postgresql://$username$:$password$@localhost:5432/$database name$?sslmode=disable" -verbose down
 ```
 
 - Grant executable
@@ -98,7 +98,7 @@ make mock
 ```
 #!/bin/bash
 
-DB_SOURCE="postgresql://$username$:$password$@localhost:5432/Theater?sslmode=disable" go test -v -cover ./...
+DB_SOURCE="postgresql://$username$:$password$@localhost:5432/$database name$?sslmode=disable" go test -v -cover ./...
 ```
 
 - Grant executable
@@ -120,7 +120,7 @@ make test
 ```
 #!/bin/bash
 
-DB_SOURCE="postgresql://$username$:$password$@localhost:5432/Theater?sslmode=disable" TOKEN_SYMMETRIC_KEY=$32 character string$ go run cmd/web/main.go
+DB_SOURCE="postgresql://$username$:$password$@localhost:5432/$database name$?sslmode=disable" TOKEN_SYMMETRIC_KEY=$32 character string$ go run cmd/web/main.go
 ```
 
 - Grant executable
