@@ -107,6 +107,8 @@ DB_SOURCE="postgresql://$username$:$password$@localhost:5432/Theater?sslmode=dis
 chmod +x test.sh
 ```
 
+- And run
+
 ```
 make test
 ```
@@ -126,6 +128,8 @@ DB_SOURCE="postgresql://$username$:$password$@localhost:5432/Theater?sslmode=dis
 ```
 chmod +x start.sh
 ```
+
+- And run
 
 ```
 make server
