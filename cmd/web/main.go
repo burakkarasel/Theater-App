@@ -39,7 +39,11 @@ func main() {
 	log.Println("created a new store instance")
 
 	// then i create a new server to run the server
-	server := api.NewServer(store)
+	server, err := api.NewServer(config, store)
+
+	if err != nil {
+		log.Fatal("cannot create server:", err)
+	}
 
 	log.Println("created a new server instance")
 
