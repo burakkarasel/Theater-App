@@ -203,7 +203,7 @@ func TestCreateUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := "/users"
@@ -293,7 +293,7 @@ func TestLoginUserAPI(t *testing.T) {
 				store.EXPECT().GetUser(gomock.Any(), gomock.Eq(user.Username)).Times(1).Return(user, nil)
 			},
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
-				require.Equal(t, http.StatusNotFound, w.Code)
+				require.Equal(t, http.StatusUnauthorized, w.Code)
 			},
 		},
 		{
@@ -319,7 +319,7 @@ func TestLoginUserAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := "/users/login"

@@ -166,7 +166,7 @@ func TestCreateMovieAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := "/movies"
@@ -258,7 +258,7 @@ func TestGetMovieAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/movies/%d", tt.movieID)
@@ -352,7 +352,7 @@ func TestListMoviesAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/movies%s", tt.query)

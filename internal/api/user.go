@@ -79,6 +79,12 @@ type LoginUserRequest struct {
 	Password string `json:"password" binding:"required,min=8"`
 }
 
+// LoginUserResponse holds login response data
+type LoginUserResponse struct {
+	AccessToken string       `json:"access_token"`
+	User        UserResponse `json:"user"`
+}
+
 // loginUser logs in a user
 func (server *Server) loginUser(ctx *gin.Context) {
 	// first i check bindings
@@ -106,7 +112,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	if err := util.CompareHashedPassword(req.Password, u.HashedPassword); err != nil {
 		// if those doesnt match i return 404 and invalid password error
 		if err == bcrypt.ErrMismatchedHashAndPassword {
-			ctx.JSON(http.StatusNotFound, errorResponse(ErrInvalidPassword))
+			ctx.JSON(http.StatusUnauthorized, errorResponse(ErrInvalidPassword))
 			return
 		}
 		// otherwise i return 500 and the error
@@ -114,8 +120,23 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		return
 	}
 
+	// if the password is correct we create a new access token for the user
+	accessToken, err := server.tokenMaker.CreateToken(u.Username, server.config.AccessTokenDuration)
+
+	// if any error occurs we return 500 and the error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// then we create a response that involves the accces token we created
+	resp := LoginUserResponse{
+		AccessToken: accessToken,
+		User:        createUserResponse(u),
+	}
+
 	// finally i return OK and created User response
-	ctx.JSON(http.StatusOK, createUserResponse(u))
+	ctx.JSON(http.StatusOK, resp)
 }
 
 // createUserResponse creates a user response without sensitive information

@@ -79,7 +79,7 @@ func TestGetDirectorAPI(t *testing.T) {
 			tt.buildStubs(store)
 
 			// start test server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/directors/%d", tt.directorID)
@@ -205,7 +205,7 @@ func TestCreateDirectorAPI(t *testing.T) {
 		store := mockdb.NewMockStore(ctrl)
 		tt.buildStubs(store)
 
-		server := NewServer(store)
+		server := newTestServer(t, store)
 		w := httptest.NewRecorder()
 
 		data, err := json.Marshal(tt.body)
@@ -312,7 +312,7 @@ func TestListDirectorsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/directors%s", tt.query)

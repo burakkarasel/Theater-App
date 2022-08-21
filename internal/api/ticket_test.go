@@ -222,7 +222,7 @@ func TestCreateTicketAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := "/tickets"
@@ -314,7 +314,7 @@ func TestGetTicketAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/tickets/%d", tt.ID)
@@ -459,7 +459,7 @@ func TestListTicketsAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/tickets%s", tt.query)
@@ -533,7 +533,7 @@ func TestDeleteTicketAPI(t *testing.T) {
 			store := mockdb.NewMockStore(ctrl)
 			tt.buildStubs(store)
 
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			w := httptest.NewRecorder()
 
 			url := fmt.Sprintf("/tickets/%d", tt.ID)

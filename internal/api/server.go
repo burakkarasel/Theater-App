@@ -4,22 +4,47 @@ import (
 	"errors"
 
 	db "github.com/burakkarasel/Theatre-API/internal/db/sqlc"
+	"github.com/burakkarasel/Theatre-API/internal/token"
+	"github.com/burakkarasel/Theatre-API/internal/util"
 	"github.com/gin-gonic/gin"
 )
 
 var ErrMovieLimit = errors.New("cannot create more movies")
 var ErrInvalidTicket = errors.New("cannot create ticket for 0 adult and 0 child")
 var ErrInvalidPassword = errors.New("invalid password")
+var ErrCannoCreateTokenMaker = errors.New("cannot create token maker")
 
 // Server serves HTTP requests for our theatre app service.
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	config     util.Config
+	store      db.Store
+	router     *gin.Engine
+	tokenMaker token.Maker
 }
 
 // NewServer creates a new server instance with given store and sets up our routing
-func NewServer(store db.Store) *Server {
-	server := &Server{store: store}
+func NewServer(config util.Config, store db.Store) (*Server, error) {
+	// if i wanted to change my token type all i need to is implement it in token package and change here
+	tokenMaker, err := token.NewJWTMaker(config.TokenSymmetricKey)
+
+	if err != nil {
+		return nil, ErrCannoCreateTokenMaker
+	}
+
+	server := &Server{config: config, store: store, tokenMaker: tokenMaker}
+
+	server.setRoutes()
+
+	return server, nil
+}
+
+// start runs the HTTP server on a specific port
+func (server *Server) Start(port string) error {
+	return server.router.Run(port)
+}
+
+// setRoutes sets the routes for the server
+func (server *Server) setRoutes() {
 	router := gin.Default()
 
 	// directors
@@ -43,12 +68,6 @@ func NewServer(store db.Store) *Server {
 	router.POST("/users/login", server.loginUser)
 
 	server.router = router
-	return server
-}
-
-// start runs the HTTP server on a specific port
-func (server *Server) Start(port string) error {
-	return server.router.Run(port)
 }
 
 // errorResponse lets us to create a key-value pair for our errors
