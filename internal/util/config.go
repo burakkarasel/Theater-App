@@ -1,12 +1,18 @@
 package util
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 // Config holds env variables for the app
 type Config struct {
-	DBDriver      string `mapstructure:"DB_DRIVER"`
-	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
-	DBSource      string `mapstructure:"DB_SOURCE"`
+	DBDriver            string        `mapstructure:"DB_DRIVER"`
+	ServerAddress       string        `mapstructure:"SERVER_ADDRESS"`
+	DBSource            string        `mapstructure:"DB_SOURCE"`
+	TokenSymmetricKey   string        `mapstructure:"TOKEN_SYMMETRIC_KEY"`
+	AccessTokenDuration time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
 }
 
 // LoadConfig loads the env variables from app.env
