@@ -75,8 +75,10 @@ func (server *Server) createTicket(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// if no error occurs i return ok and create ticket response
 	ctx.JSON(http.StatusOK, CreateTicketResponse{Ticket: t, Movie: m})
@@ -134,8 +136,10 @@ func (server *Server) getTicket(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// if no error occurs i return OK and get ticket response
 	ctx.JSON(http.StatusOK, GetTicketResponse{Movie: m, Ticket: t})
@@ -198,8 +202,10 @@ func (server *Server) listTickets(ctx *gin.Context) {
 		result = append(result, res)
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// then i return the result with OK
 	ctx.JSON(http.StatusOK, result)
@@ -257,8 +263,10 @@ func (server *Server) deleteTicket(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// if no error occurs i return OK and no data
 	ctx.JSON(http.StatusOK, nil)

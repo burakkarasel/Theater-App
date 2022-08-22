@@ -66,8 +66,10 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// if no error occurs i create a user response
 	res := createUserResponse(u)
@@ -138,8 +140,10 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		User:        createUserResponse(u),
 	}
 
-	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	ctx.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+	ctx.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+	ctx.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 	// finally i return OK and created User response
 	ctx.JSON(http.StatusOK, resp)
