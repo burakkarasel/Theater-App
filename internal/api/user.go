@@ -66,6 +66,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+
 	// if no error occurs i create a user response
 	res := createUserResponse(u)
 
@@ -134,6 +137,9 @@ func (server *Server) loginUser(ctx *gin.Context) {
 		AccessToken: accessToken,
 		User:        createUserResponse(u),
 	}
+
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
 
 	// finally i return OK and created User response
 	ctx.JSON(http.StatusOK, resp)

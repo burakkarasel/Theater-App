@@ -44,6 +44,9 @@ func (server *Server) createMovie(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+
 	// otherwise i return OK and the movie that i inserted into DB
 	ctx.JSON(http.StatusOK, m)
 }
@@ -90,6 +93,9 @@ func (server *Server) getMovie(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+
 	// otherwise i return OK and the movie from the DB
 	ctx.JSON(http.StatusOK, GetMovieResponse{Movie: m, Director: d})
 }
@@ -128,6 +134,9 @@ func (server *Server) listMovies(ctx *gin.Context) {
 
 		res = append(res, GetMovieResponse{Movie: m, Director: d})
 	}
+
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
 
 	// otherwise i return OK and the movies i got from the DB
 	ctx.JSON(http.StatusOK, res)

@@ -38,6 +38,9 @@ func (server *Server) createDirector(ctx *gin.Context) {
 		return
 	}
 
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
+
 	// if no error occurs i send back status ok and created director
 	ctx.JSON(http.StatusOK, d)
 }
@@ -69,6 +72,9 @@ func (server *Server) getDirector(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
 
 	// if no error occurs i return status ok and the director
 	ctx.JSON(http.StatusOK, d)
@@ -102,6 +108,9 @@ func (server *Server) listDirectors(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	ctx.Request.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+	ctx.Request.Response.Header.Set("Access-Control-Allow-Origin", "*")
 
 	// if no error occurs i return status ok and the directors i got from the DB
 	ctx.JSON(http.StatusOK, directors)
